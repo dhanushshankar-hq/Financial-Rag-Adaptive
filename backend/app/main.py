@@ -17,7 +17,7 @@ app.add_middleware(
 )
 
 @app.get('/health',tags=['health'])
-async def health_check():
+def health_check():
     return {
         "status" : "online",
         "project" : settings.PROJECT_NAME,
