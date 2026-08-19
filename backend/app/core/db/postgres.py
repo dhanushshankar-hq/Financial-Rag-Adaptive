@@ -2,6 +2,10 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 from backend.app.core.config import settings
 
 class PostgresManager:
+    """
+    Singleton manager for asynchronous PostgreSQL database connections.
+    Handles the engine lifecycle and session generation for the application.
+    """
     _instance = None
 
     def __new__(cls):
@@ -22,7 +26,11 @@ class PostgresManager:
         return cls._instance
     
     async def get_session(self):
-        async with self.session_factory as session:
+        """
+        Yields an asynchronous database session.
+        Usage: async with postgres_db.get_session() as session:
+        """
+        async with self.session_factory() as session:
             yield session
 
 postgres_db = PostgresManager()
