@@ -8,29 +8,28 @@ class Settings(BaseSettings):
     # API Keys
     GROQ_API_KEY: str
     GEMINI_API_KEY: str
-    TOGETHER_API_KEY: str
     
     # PostgreSQL Configuration
-    POSTGRES_USER: str = "postgres"
-    POSTGRES_PASSWORD: str = "postgres"
-    POSTGRES_HOST: str = "localhost"
-    POSTGRES_PORT: int = 5432
-    POSTGRES_DB: str = "finrag"
+    POSTGRES_USER: str
+    POSTGRES_PASSWORD: str
+    POSTGRES_HOST: str
+    POSTGRES_PORT: int
+    POSTGRES_DB: str
     
     # Neo4j Configuration
-    NEO4J_URI: str = "neo4j://localhost:7687"
-    NEO4J_USER: str = "neo4j"
-    NEO4J_PASSWORD: str = "password"
+    NEO4J_URI: str
+    NEO4J_USER: str
+    NEO4J_PASSWORD: str
     
     # Redis Configuration
-    REDIS_HOST: str = "localhost"
-    REDIS_PORT: int = 6379
+    REDIS_HOST: str
+    REDIS_PORT: int
+    REDIS_USERNAME: str
+    REDIS_PASSWORD: str
 
     @property
     def ASYNC_POSTGRES_URI(self):
-        return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+        return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"         
 
     model_config = SettingsConfigDict(env_file=".env")
-    print(model_config)
-    
 settings = Settings()
