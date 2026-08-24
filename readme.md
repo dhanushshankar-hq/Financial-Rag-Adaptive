@@ -71,10 +71,12 @@ _Ablation table and retrieval metrics land here once evaluation is finalized. Th
 │       ├── cache
 │       ├── core
 │       │   ├── config.py   # typed settings — see Core Infrastructure below
+│       │   ├── logging.py  # structlog setup — see Core Infrastructure below
 │       │   └── db          # connection managers — see Core Infrastructure below
 │       ├── correction      # LangGraph self-correction loop
 │       ├── eval
 │       ├── ingestion
+│       ├── main.py         # FastAPI app + lifespan
 │       ├── retrieval       # hybrid search + RRF fusion
 │       ├── routers         # FastAPI endpoints
 │       └── services
@@ -97,6 +99,7 @@ Typed, validated configuration via `pydantic-settings`, loaded from a `.env` fil
 |---|---|---|
 | `Neo4jDatabaseManager` | Owns the async Neo4j driver; yields graph sessions | Singleton, so the connection pool survives across requests instead of rebuilding per call. `get_session()` is deliberately an async generator rather than a plain method — that's what lets it plug directly into FastAPI's dependency system for automatic per-request cleanup. |
 | `PostgresManager` | Owns the async SQLAlchemy engine + session factory; yields relational sessions | Same singleton + async-generator pattern, so both database layers behave consistently from the caller's side. |
+| `RedisManager` | Owns the async Redis connection pool; yields Redis client sessions for caching | Pool creation is a separate, explicit `connect()` call rather than happening in `__new__` like the other two — needs to be called once at app startup (e.g. a FastAPI lifespan hook) before `get_session()` will work; raises a clear `RuntimeError` otherwise. |
 
 **Usage (FastAPI route):**
 ```python
@@ -111,7 +114,11 @@ async def get_company(ticker: str, session = Depends(neo4j_db.get_session)):
     return await result.data()
 ```
 
-**Note:** both `get_session()` methods are plain async generators — meant to be consumed via FastAPI's `Depends()` (as above), or outside a request context (ingestion/eval scripts) via `async for session in postgres_db.get_session():`. They do **not** support `async with postgres_db.get_session() as session:` directly; that protocol only works on methods wrapped with `@contextlib.asynccontextmanager`, which these aren't.
+**Note:** all three `get_session()` methods are plain async generators — meant to be consumed via FastAPI's `Depends()` (as above), or outside a request context (ingestion/eval scripts) via `async for session in postgres_db.get_session():`. They do **not** support `async with x.get_session() as session:` directly; that protocol only works on methods wrapped with `@contextlib.asynccontextmanager`, which none of these are.
+
+### Logging — `backend/app/core/logging.py`
+
+Structured JSON logging via `structlog`, wired through `structlog.contextvars` so request-scoped context (like a request ID) automatically shows up on every log line emitted during that request, without threading it manually through every function call. JSON output rather than pretty-printed console output, since these logs need to be machine-parseable the moment this runs anywhere other than a local terminal.
 
 ## Getting Started
 
@@ -153,9 +160,17 @@ Run the API:
 ```bash
 uvicorn backend.app.main:app --reload
 ```
-*(adjust the entrypoint if `main.py` lives somewhere else)*
 
-*No working endpoint to curl yet — `routers/` is still empty. This section gets a real one-line example the moment the first route exists.*
+Confirm it's up:
+```bash
+curl http://localhost:8000/health
+```
+```json
+{"status": "healthy", "latency_ms": 12.34, "project": "finrag-adaptive", "version": "1.0.0"}
+```
+Returns `503` instead of `200` if Postgres, Neo4j, or Redis fails to respond.
+
+*That's `/health` only — `routers/` beyond this is still empty, so there's no `/query` endpoint yet.*
 
 ## Documentation
 
@@ -168,8 +183,10 @@ Deep dives live in their own files instead of bloating this one:
 ## Status & Roadmap
 
 **Built**
-- [x] Async database layer — Neo4j + PostgreSQL connection management
+- [x] Async database layer — Neo4j + PostgreSQL + Redis connection management
 - [x] Typed configuration via pydantic-settings
+- [x] Structured JSON logging (structlog)
+- [x] FastAPI app entrypoint with lifespan + health check
 
 **Planned**
 - [ ] Ingestion pipeline (chunking, embedding, entity/relation extraction)
