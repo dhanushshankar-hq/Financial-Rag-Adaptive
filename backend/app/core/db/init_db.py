@@ -28,4 +28,7 @@ embedding vector(1024),
 metadata JSONB DEFAULLT '{}'::jsonb,
 created_at TiMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS idx_chunks_filing_id ON chunks(filing_id);
+CREATE INDEX IF NOT EXISTS idx_chunks_section_type ON chunks(section_type)
 """
