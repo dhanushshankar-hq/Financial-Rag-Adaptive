@@ -120,6 +120,13 @@ async def get_company(ticker: str, session = Depends(neo4j_db.get_session)):
 
 Structured JSON logging via `structlog`, wired through `structlog.contextvars` so request-scoped context (like a request ID) automatically shows up on every log line emitted during that request, without threading it manually through every function call. JSON output rather than pretty-printed console output, since these logs need to be machine-parseable the moment this runs anywhere other than a local terminal.
 
+### Schema Initialization — `backend/app/core/db/init_db.py`
+
+One-off script (not imported by the running app) that creates the Postgres schema — `filings`, `chunks` (with a `pgvector` embedding column), `model_pricing`, `query_logs`, and `user_feedback` — plus the Neo4j uniqueness constraint and indexes the graph model relies on. Requires the `pgvector` extension available on the target Postgres instance. Run once per environment:
+```bash
+python -m backend.app.core.db.init_db
+```
+
 ## Getting Started
 
 **Requirements:** Python 3.11+, and running instances of PostgreSQL, Neo4j, and Redis.
@@ -187,6 +194,7 @@ Deep dives live in their own files instead of bloating this one:
 - [x] Typed configuration via pydantic-settings
 - [x] Structured JSON logging (structlog)
 - [x] FastAPI app entrypoint with lifespan + health check
+- [x] Postgres schema + Neo4j constraints (`init_db.py`)
 
 **Planned**
 - [ ] Ingestion pipeline (chunking, embedding, entity/relation extraction)
