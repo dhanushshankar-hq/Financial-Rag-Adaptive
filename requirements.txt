@@ -11,3 +11,4 @@ httpx>=0.27.0
 python-dotenv>=1.0.0
 structlog>=24.1.0
 sqlalchemy[asyncio] >= 2.0.52 
+docling >= 2.126.0
