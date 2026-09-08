@@ -11,7 +11,7 @@ class ParsedDocument(BaseModel):
     filename : str
     total_pages : int
     full_text_markdown : str
-    table : List[ExtractedTable] = Field(default_factory=list)
+    tables : List[ExtractedTable] = Field(default_factory=list)
     metadata : Dict[str,Any] = Field(defualt_factory=list)
 
 class IDocumentParser(ABC):
