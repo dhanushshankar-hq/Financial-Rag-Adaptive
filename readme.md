@@ -76,6 +76,7 @@ _Ablation table and retrieval metrics land here once evaluation is finalized. Th
 │       ├── correction      # LangGraph self-correction loop
 │       ├── eval
 │       ├── ingestion
+│       │   └── parsers     # PDF parsing (Docling) — text + table extraction
 │       ├── main.py         # FastAPI app + lifespan
 │       ├── retrieval       # hybrid search + RRF fusion
 │       ├── routers         # FastAPI endpoints
@@ -195,9 +196,10 @@ Deep dives live in their own files instead of bloating this one:
 - [x] Structured JSON logging (structlog)
 - [x] FastAPI app entrypoint with lifespan + health check
 - [x] Postgres schema + Neo4j constraints (`init_db.py`)
+- [x] Layout-aware PDF parsing (Docling) — text + table extraction
 
 **Planned**
-- [ ] Ingestion pipeline (chunking, embedding, entity/relation extraction)
+- [ ] Ingestion pipeline (chunking, embedding, entity/relation extraction — PDF parsing done, see Built)
 - [ ] Hybrid retrieval (vector + keyword)
 - [ ] RRF fusion + query router
 - [ ] Neo4j knowledge graph construction
