@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS filings (
 CREATE TABLE IF NOT EXISTS chunks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     filings_id UUID NOT NULL REFERENCES filings(id) ON DELETE CASCADE,
-    section_type TEXT NOT NULL,
+    heading_path TEXT NOT NULL,
     chunk_index INT NOT NULL,
     content TEXT NOT NULL,
     token_count INT NOT NULL,
@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS chunks (
 );
 
 CREATE INDEX IF NOT EXISTS idx_chunks_filing_id ON chunks(filings_id);
-CREATE INDEX IF NOT EXISTS idx_chunks_section_type ON chunks(section_type);
+CREATE INDEX IF NOT EXISTS idx_chunks_heading_path ON chunks(heading_path);
 
 CREATE TABLE IF NOT EXISTS model_pricing (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
