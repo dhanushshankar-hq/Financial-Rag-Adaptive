@@ -16,12 +16,13 @@ CREATE TABLE IF NOT EXISTS filings (
     ticker TEXT NOT NULL,
     fiscal_year TEXT NOT NULL,
     source_url TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(ticker, fiscal_year)
 );
 
 CREATE TABLE IF NOT EXISTS chunks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    filings_id UUID NOT NULL REFERENCES filings(id) ON DELETE CASCADE,
+    filing_id UUID NOT NULL REFERENCES filings(id) ON DELETE CASCADE,
     heading_path TEXT NOT NULL,
     chunk_index INT NOT NULL,
     content TEXT NOT NULL,
@@ -31,7 +32,7 @@ CREATE TABLE IF NOT EXISTS chunks (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_chunks_filing_id ON chunks(filings_id);
+CREATE INDEX IF NOT EXISTS idx_chunks_filing_id ON chunks(filing_id);
 CREATE INDEX IF NOT EXISTS idx_chunks_heading_path ON chunks(heading_path);
 
 CREATE TABLE IF NOT EXISTS model_pricing (
