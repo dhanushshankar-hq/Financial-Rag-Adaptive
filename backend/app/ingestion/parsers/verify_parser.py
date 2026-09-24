@@ -1,8 +1,8 @@
 import asyncio
-from backend.app.ingestion.parsers.docling_adapter import DoclingAdapter
+from backend.app.ingestion.parsers.docling_adapter import DoclingParserAdapter
 
 async def run_test():
-    parser = DoclingAdapter()
+    parser = DoclingParserAdapter()
     result = await parser.parse_pdf(
         "data/raw/tcs_fy25.pdf",
         metadata={"ticker": "TCS", "fiscal_year": "FY25"}

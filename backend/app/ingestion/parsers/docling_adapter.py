@@ -11,7 +11,7 @@ import structlog
 
 logger = structlog.get_logger()
 
-class DoclingAdapter(IDocumentParser):
+class DoclingParserAdapter(IDocumentParser):
     def __init__(self):
         self._converter :DocumentConverter =  None
 
