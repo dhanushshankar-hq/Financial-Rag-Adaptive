@@ -197,9 +197,9 @@ Deep dives live in their own files instead of bloating this one:
 - [x] FastAPI app entrypoint with lifespan + health check
 - [x] Postgres schema + Neo4j constraints (`init_db.py`)
 - [x] Layout-aware PDF parsing (Docling) — text + table extraction
+- [x] Chunking + embedding pipeline (section-aware chunker, BGE-large embeddings, Postgres storage)
 
 **Planned**
-- [ ] Ingestion pipeline (chunking, embedding, entity/relation extraction — PDF parsing done, see Built)
 - [ ] Hybrid retrieval (vector + keyword)
 - [ ] RRF fusion + query router
 - [ ] Neo4j knowledge graph construction
