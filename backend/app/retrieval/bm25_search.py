@@ -1,5 +1,5 @@
 from sqlalchemy import text
-from app.core.db.postgres import postgres_db
+from backend.app.core.db.postgres import postgres_db
 
 class SparseSearcher:
     async def search(self, query: str, top_k: int = 20) -> list[dict]:

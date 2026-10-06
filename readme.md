@@ -1,21 +1,24 @@
 # finrag-adaptive
 
-*Hybrid retrieval system for answering complex financial questions over Indian listed companies' annual reports — dense + sparse retrieval fused with RRF, a Neo4j knowledge graph, and a LangGraph self-correction loop that adaptively retries weak answers.*
+*Hybrid retrieval system for answering complex financial questions over annual reports and 10-Ks from Indian and US service-sector companies — dense + sparse retrieval fused with RRF, a Neo4j knowledge graph, and a LangGraph self-correction loop that adaptively retries weak answers.*
 
 > **Status: active development.** This README tracks the actual state of the codebase — see [Status & Roadmap](#status--roadmap) for what's built vs. planned.
 
 ## Overview
 
-Indian listed-company annual reports are long, dense, and only partially structured — financials, MD&A narrative, subsidiary disclosures, and risk factors are all cross-referenced but rarely easy to query directly. Plain vector search struggles with the precision these documents demand: a question like *"how did segment revenue change relative to a peer across the last 3 filings"* needs both semantic retrieval and structured, relational context that flat chunk-based RAG doesn't give you.
+Financial filings are long, dense, and only partially structured — and Indian annual reports and US 10-Ks don't even share a common format: different section conventions, different heading styles, different regulatory vocabulary. Plain vector search struggles with the precision these documents demand regardless of format: a question like *"how did segment revenue change relative to a peer across the last 3 filings"* needs both semantic retrieval and structured, relational context that flat chunk-based RAG doesn't give you.
 
 This project addresses that with:
 
+- **Heading-aware, format-agnostic chunking** — sections are detected from markdown heading levels (`#`/`##`/`###`), not a fixed vocabulary of section names, so the same pipeline handles an Indian annual report and a US 10-K without per-format rules
 - **Hybrid retrieval** (dense + sparse), combined via **Reciprocal Rank Fusion (RRF)**
 - A **query router** that sends each query down the right retrieval path
 - A **Neo4j knowledge graph** capturing entities and relationships — subsidiaries, segments, metrics across periods — that flat chunk retrieval misses
 - A **LangGraph self-correction loop** that validates an answer before returning it, and retries when it isn't good enough
 - A **fine-tuned bi-encoder**, trained on hard negatives specific to financial language
 - A **component-by-component ablation study** isolating exactly how much each piece contributes — this is the centerpiece of the eval
+
+Scoped to **service-sector companies** (e.g. TCS, Infosys, Wipro; Accenture, Cognizant) rather than every sector and accounting standard at once — keeps business models and metrics comparable across the India/US split.
 
 ## Architecture
 
@@ -76,9 +79,11 @@ _Ablation table and retrieval metrics land here once evaluation is finalized. Th
 │       ├── correction      # LangGraph self-correction loop
 │       ├── eval
 │       ├── ingestion
-│       │   └── parsers     # PDF parsing (Docling) — text + table extraction
+│       │   ├── chunkers    # heading-aware, format-agnostic chunking
+│       │   ├── parsers     # PDF parsing (Docling) — text + table extraction
+│       │   └── pipeline.py # parse → chunk → embed → store
 │       ├── main.py         # FastAPI app + lifespan
-│       ├── retrieval       # hybrid search + RRF fusion
+│       ├── retrieval       # BM25 + vector search — RRF fusion still pending
 │       ├── routers         # FastAPI endpoints
 │       └── services
 │           └── embeddings  # bi-encoder fine-tuning
@@ -197,11 +202,15 @@ Deep dives live in their own files instead of bloating this one:
 - [x] FastAPI app entrypoint with lifespan + health check
 - [x] Postgres schema + Neo4j constraints (`init_db.py`)
 - [x] Layout-aware PDF parsing (Docling) — text + table extraction
-- [x] Chunking + embedding pipeline (section-aware chunker, BGE-large embeddings, Postgres storage)
+- [x] Chunking + embedding pipeline (heading-aware, format-agnostic chunker, BGE-large embeddings, Postgres storage)
+- [x] Sparse search — Postgres full-text (`ts_rank_cd`)
+- [x] Dense search — pgvector cosine similarity
 
 **Planned**
-- [ ] Hybrid retrieval (vector + keyword)
-- [ ] RRF fusion + query router
+- [ ] RRF fusion (combine sparse + dense results)
+- [ ] Query router
+- [ ] Indexes for retrieval at scale — GIN on full-text, HNSW/IVFFlat on embeddings
+- [ ] Validate chunking against a non-Indian filing format (e.g. a US 10-K)
 - [ ] Neo4j knowledge graph construction
 - [ ] LangGraph self-correction loop
 - [ ] Bi-encoder fine-tuning on hard negatives
