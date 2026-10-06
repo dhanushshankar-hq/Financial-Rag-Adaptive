@@ -1,6 +1,6 @@
 from sqlalchemy import text
 from sentence_transformers import SentenceTransformer
-from app.core.db.postgres import postgres_db
+from backend.app.core.db.postgres import postgres_db
 
 class VectorSearcher:
     def __init__(self):
@@ -8,16 +8,18 @@ class VectorSearcher:
 
     async def search(self, query: str, top_k: int = 20) -> list[dict]:
         query_embedding = self.model.encode(query).tolist()
-        
+
+        query_statement = text("""
+        SELECT id, filing_id, heading_path, content, metadata,
+        1 - (embedding <=> CAST(:query_embedding AS vector)) AS score
+        FROM chunks
+        ORDER BY embedding <=> CAST(:query_embedding AS vector)
+        LIMIT :top_k
+        """)
+
         async for session in postgres_db.get_session():
             result = await session.execute(
-                text("""
-                    SELECT id, filing_id, heading_path, content, metadata,
-                           1 - (embedding <=> :query_embedding::vector) AS score
-                    FROM chunks
-                    ORDER BY embedding <=> :query_embedding::vector
-                    LIMIT :top_k;
-                """),
+                query_statement,
                 {"query_embedding": str(query_embedding), "top_k": top_k}
             )
             rows = result.mappings().all()
