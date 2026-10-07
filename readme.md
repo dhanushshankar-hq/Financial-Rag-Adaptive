@@ -83,7 +83,8 @@ _Ablation table and retrieval metrics land here once evaluation is finalized. Th
 │       │   ├── parsers     # PDF parsing (Docling) — text + table extraction
 │       │   └── pipeline.py # parse → chunk → embed → store
 │       ├── main.py         # FastAPI app + lifespan
-│       ├── retrieval       # BM25 + vector search — RRF fusion still pending
+│       ├── retrieval       # BM25 + vector search + RRF fusion + cross-encoder reranking
+│       │   └── pipeline.py # hybrid retrieve → rerank
 │       ├── routers         # FastAPI endpoints
 │       └── services
 │           └── embeddings  # bi-encoder fine-tuning
@@ -205,9 +206,10 @@ Deep dives live in their own files instead of bloating this one:
 - [x] Chunking + embedding pipeline (heading-aware, format-agnostic chunker, BGE-large embeddings, Postgres storage)
 - [x] Sparse search — Postgres full-text (`ts_rank_cd`)
 - [x] Dense search — pgvector cosine similarity
+- [x] RRF fusion (k=60) combining sparse + dense results
+- [x] Cross-encoder reranking (BGE-reranker-base) on RRF-fused candidates
 
 **Planned**
-- [ ] RRF fusion (combine sparse + dense results)
 - [ ] Query router
 - [ ] Indexes for retrieval at scale — GIN on full-text, HNSW/IVFFlat on embeddings
 - [ ] Validate chunking against a non-Indian filing format (e.g. a US 10-K)
