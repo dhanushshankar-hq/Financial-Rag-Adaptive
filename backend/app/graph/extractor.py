@@ -1,5 +1,5 @@
 from typing import List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 import structlog
 from groq import Groq
 from backend.app.core.config import settings
@@ -12,8 +12,10 @@ class FinancialMetric(BaseModel):
     currency: str = Field(description="Currency code such as INR")
     scale: str = Field(description="Scale multiplier such as Crores or Millions")
 
+    model_config = ConfigDict(extra="forbid")
 class FilingMetrics(BaseModel):
     metrics: List[FinancialMetric]
+    model_config = ConfigDict(extra="forbid")
 
 class MetricExtractor:
     def __init__(self):
@@ -37,7 +39,7 @@ class MetricExtractor:
                 {"role": "user", "content":user_prompt}
                 ],
             response_format={
-                "type": "json_object",
+                "type": "json_schema",
                 "json_schema": {
                     "name": "FilingMetrics",
                     "strict": True,
