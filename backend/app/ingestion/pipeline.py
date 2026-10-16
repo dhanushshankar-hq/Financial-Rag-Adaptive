@@ -1,11 +1,14 @@
 import json
 import structlog
+from typing import Dict, Any, List
 from sqlalchemy import text
 from sentence_transformers import SentenceTransformer
 
 from backend.app.core.db.postgres import postgres_db
 from backend.app.ingestion.parsers.docling_adapter import DoclingParserAdapter
 from backend.app.ingestion.chunkers.section_chunker import FinancialSectionChunker
+from backend.app.graph.extractor import MetricExtractor
+from backend.app.graph.loader import Neo4jGraphLoader
 
 logger = structlog.get_logger()
 
@@ -13,8 +16,9 @@ class IngestionPipeline:
     def __init__(self):
         self.parser = DoclingParserAdapter()
         self.chunker = FinancialSectionChunker(target_chunk_size=512, overlap=64)
-
         self.embedding_model = SentenceTransformer("BAAI/bge-large-en-v1.5")
+        self.metric_extractor = MetricExtractor()
+        self.graph_loader = Neo4jGraphLoader()
 
     async def ingest_filing(
         self, 
@@ -24,7 +28,7 @@ class IngestionPipeline:
         fiscal_year: str, 
         source_url: str = None
     ) -> str:
-        logger.info("Starting ingestion pipeline", ticker=ticker, year=fiscal_year)
+        logger.info("Starting unified ingestion pipeline", ticker=ticker, year=fiscal_year)
         
         parsed_doc = await self.parser.parse_pdf(
             file_path=file_path, 
@@ -37,9 +41,8 @@ class IngestionPipeline:
         )
 
         chunk_texts = [c.content for c in chunks]
-        logger.info("Generating embeddings", count=len(chunk_texts))
+        logger.info("Generating embeddings for chunks", count=len(chunk_texts))
         embeddings = self.embedding_model.encode(chunk_texts, show_progress_bar=False).tolist()
-
 
         async for session in postgres_db.get_session():
             filing_query = text("""
@@ -80,5 +83,30 @@ class IngestionPipeline:
             await session.execute(chunk_insert_query, chunk_records)
             await session.commit()
 
-        logger.info("Ingestion completed successfully", filing_id=str(filing_id), total_chunks=len(chunks))
+        logger.info("PostgreSQL chunks and embeddings saved", total_chunks=len(chunks))
+
+        logger.info("Extracting graph metrics from parsed tables", tables_count=len(parsed_doc.tables))
+        
+        all_metrics = []
+        for table in parsed_doc.tables:
+            content_lower = table.markdown_data.lower()
+            if any(term in content_lower for term in ["revenue", "profit", "assets", "liabilities", "income", "balance"]):
+                try:
+                    metrics = self.metric_extractor.extract_from_table(table.markdown_data)
+                    all_metrics.extend(metrics)
+                except Exception as e:
+                    logger.warning("Failed metric extraction for table", page=table.page_number, error=str(e))
+
+        if all_metrics:
+            await self.graph_loader.load_metrics(
+                company_name=company_name,
+                ticker=ticker,
+                fiscal_year=fiscal_year,
+                metrics=all_metrics
+            )
+            logger.info("Neo4j graph populated successfully", total_metrics=len(all_metrics))
+        else:
+            logger.warning("No financial metrics extracted from tables")
+
+        logger.info("Unified ingestion pipeline completed successfully", filing_id=str(filing_id))
         return str(filing_id)
